@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="">
+<head>
+    <meta charset="UTF-8">
+    <title>Layout</title>
+    <link href="/css/styles.css" rel="stylesheet">
+    <script src="https://use.fontawesome.com/releases/v6.1.0/js/all.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<!-- Header fragment 사용 -->
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+
+<div id="layoutSidenav">
+    <div id="layoutSidenav_nav">
+        <!-- Sidebar fragment 사용 -->
+        <div th:replace="~{fragments/sidebar :: sidebarFragment}"></div>
+    </div>
+    <div id="layoutSidenav_content">
+        <main>
+            <!-- Main content -->
+            <div layout:fragment="content">
+                <!-- 기본 콘텐츠, 템플릿에서 채워질 부분 -->
+            </div>
+        </main>
+        <!-- Footer fragment 사용 -->
+        <div th:replace="~{fragments/footer :: footerFragment}"></div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script src="/js/scripts.js"></script>
+</body>
+</html>
