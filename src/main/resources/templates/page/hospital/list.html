@@ -5,34 +5,24 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>병원 리스트</title>
+  <title></title>
   <link href="/css/styles.css" rel="stylesheet">
 </head>
 
 <body>
 <div layout:fragment="content">
   <h1>병원 리스트</h1>
-  <table>
-    <thead>
-    <tr>
-      <th>시군명</th>
-      <th>사업장 명</th>
-      <th>병상 수</th>
-      <th>위도</th>
-      <th>경도</th>
-    </tr>
-    </thead>
-    <tbody>
-   <!-- <tr th:each="hospital : ${hospitalList}">
-      <td th:text="${hospital.SIGUN_NM}"></td>
-      <td th:text="${hospital.BIZPLC_NM}"></td>
-      <td th:text="${hospital.SICKBD_CNT}"></td>
-      <td th:text="${hospital.REFINE_WGS84_LAT}"></td>
-      <td th:text="${hospital.REFINE_WGS84_LOGT}"></td>
-    </tr>
-    -->
-    </tbody>
-  </table>
+  <form action="/book/result" method="GET">
+    <div class="form-group">
+      <div id="hospital-search-form">
+        <label for="stage1">주소(시도): </label>
+        <input type="text" size=12 id="stage1" name="stage1" placeholder="서울특별시"><br>
+        <label for="stage2">주소(시군구) </label>
+        <input type="text" size=10 id="stage2" name="stage2" placeholder="강남구"><br>
+        <button type="submit">완료</button>
+      </div>
+    </div>
+  </form>
 </div>
 
 </body>
