@@ -17,7 +17,8 @@
         private String password;
         private String phoneNumber;
         private Role role;
-        private String affiliation;
+        private String organizationName;
+        private String hpid;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
     }

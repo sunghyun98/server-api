@@ -3,48 +3,70 @@ package gong.server_api.service;
 import gong.server_api.domain.dto.UserJoinDto;
 import gong.server_api.domain.entity.user.Role;
 import gong.server_api.domain.entity.user.User;
-import gong.server_api.repository.MembersRepository;
+import gong.server_api.repository.UserRepository;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+
 
 @Service
 public class UserService {
 
-    private final MembersRepository membersRepository;
-
-   // private final BCryptPasswordEncoder bCryptPasswordEncoder;
-
-    public UserService(MembersRepository membersRepository/*BCryptPasswordEncoder bCryptPasswordEncoder*/) {
-        this.membersRepository = membersRepository;
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    public UserService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
+        this.userRepository = userRepository;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
+    @Transactional
     public void userJoin(UserJoinDto userJoinDto) {
-        String username = userJoinDto.getUsername();
         String email = userJoinDto.getEmail();
-        String password = userJoinDto.getPassword();
-        Role role = userJoinDto.getRole();
-        String affiliation = userJoinDto.getAffiliation();
-        String phoneNumber = userJoinDto.getPhoneNumber();
-        LocalDateTime createdAt = userJoinDto.getCreatedAt();
-        LocalDateTime updatedAt = userJoinDto.getUpdatedAt();
 
-        boolean isExist = membersRepository.existsByEmail(email);
-
-        if (isExist) {
+        // 이미 등록된 이메일인지 확인
+        if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("User already exists with email: " + email);
         }
 
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setPassword(password);
-        user.setRole(role);
-        user.setAffiliation(affiliation);
-        user.setPhone_number(phoneNumber);
-        user.setCreatedAt(createdAt != null ? createdAt : LocalDateTime.now());
-        user.setUpdatedAt(updatedAt != null ? updatedAt : LocalDateTime.now());
+    // User 엔티티 생성
+        User.UserBuilder userBuilder = User.builder()
+                .username(userJoinDto.getUsername())
+                .email(email)
+                .password(bCryptPasswordEncoder.encode(userJoinDto.getPassword()))
+                .hpid(userJoinDto.getHpid())
+                .organization_name(userJoinDto.getOrganizationName());
 
-        membersRepository.save(user);
+        // 선택적 필드 설정
+        if (userJoinDto.getRole() != null) {
+            userBuilder.role(userJoinDto.getRole());
+        } else {
+            userBuilder.role(Role.USER); // 기본값은 일반 사용자
+        }
+
+        if (userJoinDto.getPhoneNumber() != null) {
+            userBuilder.phone_number(userJoinDto.getPhoneNumber());
+        }
+
+        if (userJoinDto.getCreatedAt() != null) {
+            userBuilder.created_at(userJoinDto.getCreatedAt());
+        } else {
+            userBuilder.created_at(LocalDateTime.now());
+        }
+
+        if (userJoinDto.getUpdatedAt() != null) {
+            userBuilder.created_at(userJoinDto.getUpdatedAt());
+        } else {
+            userBuilder.created_at(LocalDateTime.now());
+        }
+
+        User user = userBuilder.build();
+
+        // 사용자 저장
+        userRepository.save(user);
     }
 }
+
+
+
