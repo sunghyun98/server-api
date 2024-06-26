@@ -1,8 +1,8 @@
-package gong.server_api.service;
+package gong.server_api.service.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-import gong.server_api.domain.dto.hospitalDto.HospitalDTO;
+import gong.server_api.domain.dto.searchList.EmerHospitalDto;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -33,6 +33,6 @@ public class HospitalResponse {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Items {
         @JacksonXmlProperty(localName = "item")
-        private List<HospitalDTO> hospitals;
+        private List<EmerHospitalDto> hospitals;
     }
 }
