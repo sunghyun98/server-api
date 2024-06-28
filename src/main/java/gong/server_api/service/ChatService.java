@@ -6,17 +6,21 @@
     import gong.server_api.domain.entity.user.ChattingRoom;
     import gong.server_api.domain.entity.user.HospitalAi;
     import gong.server_api.domain.entity.user.User;
+    import gong.server_api.handler.ChatWebSocketHandler;
     import gong.server_api.repository.ChattingRoomRepository;
     import gong.server_api.repository.HospitalAiRepo;
     import gong.server_api.repository.PersonalChatRepository;
     import gong.server_api.repository.UserRepository;
     import lombok.extern.slf4j.Slf4j;
     import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.http.ResponseEntity;
     import org.springframework.stereotype.Service;
     import org.springframework.transaction.annotation.Transactional;
+    import org.springframework.web.bind.annotation.*;
 
     import java.sql.Timestamp;
     import java.util.List;
+    import java.util.Map;
     import java.util.Optional;
     import java.util.stream.Collectors;
 
