@@ -19,4 +19,8 @@ public class ChatMessage {
     private Long chattingRoomId;
     private Timestamp readAt;
     private Timestamp createdAt;
+
+    //AI전송 메시지
+    private String latitude;
+    private String longitude;
 }
