@@ -74,7 +74,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             String connectedHospitalsJson = new ObjectMapper().writeValueAsString(connectedHospitals);
 
             // 로그 출력
-            for (String connectedHospital : connectedHospitals) {
+           /* for (String connectedHospital : connectedHospitals) {
                 // HPID로 사용자 조회하여 organizationName 가져오기
                 userRepository.findByHpid(connectedHospital).ifPresent(user -> {
                     String organizationName = user.getOrganization_name();
@@ -87,7 +87,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                     log.info("another connected: hpid={}, organizationName={}", connectedHospital, organizationName);
                 });
             }
-
+*/
             hospitalConnectionStatusService.updateConnectionStatus(hpid, true);
             session.sendMessage(new TextMessage("안녕하세요!\n증상을 입력해 주시면 가장 가까운 응급실을 찾아드리겠습니다."));
             log.info("User connected: " + hpid);
