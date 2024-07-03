@@ -1,4 +1,4 @@
-package gong.server_api.domain.dto.chat;
+package gong.server_api.domain.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,13 +11,12 @@ import java.sql.Timestamp;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatMessage {
-
+public class ChatMessageDto {
+    private String type; // 메시지 유형 (예: "AI", "CHAT")
     private String senderUserId;
     private String receiverUserId;
     private String content;
     private Long chattingRoomId;
-    private Timestamp readAt;
     private Timestamp createdAt;
 
     //AI전송 메시지

@@ -33,8 +33,6 @@ public class Chat {
     @Column(name = "content", length = 5000)
     private String content;
 
-    @Column(name = "read_at")
-    private Timestamp readAt;
 
     @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;

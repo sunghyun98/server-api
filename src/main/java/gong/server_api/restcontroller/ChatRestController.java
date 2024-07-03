@@ -1,7 +1,7 @@
 package gong.server_api.restcontroller;
 
-import gong.server_api.domain.dto.chat.ChatMessage;
-import gong.server_api.domain.dto.chat.HospitalChatMessage;
+import gong.server_api.domain.dto.ChatMessageDto;
+import gong.server_api.domain.dto.HospitalChatMessageDto;
 import gong.server_api.handler.ChatWebSocketHandler;
 import gong.server_api.service.ChatService;
 import gong.server_api.service.HospitalConnectionStatusService;
@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/v1/chat")
@@ -28,12 +29,12 @@ public class ChatRestController {
     }
 
     @GetMapping("/received/{hpid}")
-    public List<ChatMessage> getReceivedChat(@PathVariable(name = "hpid") String hpid){
+    public List<ChatMessageDto> getReceivedChat(@PathVariable(name = "hpid") String hpid){
         return chatService.findReceivedChatList(hpid);
     }
 
     @GetMapping("/hospital/{hpid}")
-    public List<HospitalChatMessage> getHospitalChat(@PathVariable(name = "hpid") String hpid){
+    public List<HospitalChatMessageDto> getHospitalChat(@PathVariable(name = "hpid") String hpid){
         return chatService.findHospitalChat(hpid);
     }
 
@@ -46,7 +47,7 @@ public class ChatRestController {
     @PostMapping("/send")
     public ResponseEntity<String> sendMessage(@RequestBody Map<String, Object> request) {
         try {
-            // JSON에서 senderHpid와 receiverHpid 추출
+            // JSON에서 senderHpid와 r eceiverHpid 추출
             String senderHpid = (String) request.get("senderHpid");
             String receiverHpid = (String) request.get("receiverHpid");
 
