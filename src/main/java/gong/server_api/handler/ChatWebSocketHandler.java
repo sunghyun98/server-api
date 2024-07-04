@@ -1,5 +1,7 @@
 package gong.server_api.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gong.server_api.domain.dto.BaseMessageDto;
+import gong.server_api.domain.dto.ChatBotMessageDto;
 import gong.server_api.service.request.PythonRequest;
 import gong.server_api.service.response.PythonResponse;
 import gong.server_api.service.PythonService;
@@ -95,13 +97,15 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
         try {
             String payload = message.getPayload();
-            ChatMessageDto chatMessageDto = objectMapper.readValue(payload, ChatMessageDto.class);
-            log.info("Received message: {}", chatMessageDto);
+            BaseMessageDto baseMessageDto = objectMapper.readValue(payload, BaseMessageDto.class);
+            log.info("Received message: {}", baseMessageDto);
 
-            String type = chatMessageDto.getType();
+            String type = baseMessageDto.getType();
             if ("AI".equalsIgnoreCase(type)) {
-                handleAiMessage(session, chatMessageDto);
+                ChatBotMessageDto chatBotMessageDto = objectMapper.readValue(payload, ChatBotMessageDto.class);
+                handleAiMessage(session, chatBotMessageDto);
             } else if ("CHAT".equalsIgnoreCase(type)) {
+                ChatMessageDto chatMessageDto = objectMapper.readValue(payload, ChatMessageDto.class);
                 handleChatMessage(session, chatMessageDto);
             } else {
                 sendErrorMessage(session, "Unknown message type");
@@ -115,7 +119,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void handleAiMessage(WebSocketSession session, ChatMessageDto chatMessageDto) {
+    private void handleAiMessage(WebSocketSession session, ChatBotMessageDto chatMessageDto) {
         try {
             chatMessageDto.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 
@@ -162,8 +166,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             String receiverUserId = chatMessageDto.getReceiverUserId();
             WebSocketSession receiverSession = sessions.get(receiverUserId);
             if (receiverSession != null && receiverSession.isOpen()) {
-                List<ChatMessageDto> receivedChatList = chatService.findReceivedChatList(receiverUserId);
-                receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(receivedChatList)));
+                chatService.handleMessage(chatMessageDto);
+                receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(chatMessageDto)));
                 log.info("Message sent from {} to {}", chatMessageDto.getSenderUserId(), receiverUserId);
             } else {
                 log.warn("Receiver {} is not connected", receiverUserId);

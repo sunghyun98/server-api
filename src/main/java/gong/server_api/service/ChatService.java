@@ -16,6 +16,9 @@
     import org.springframework.transaction.annotation.Transactional;
 
     import java.sql.Timestamp;
+    import java.time.LocalDateTime;
+    import java.time.ZoneId;
+    import java.time.ZonedDateTime;
     import java.util.List;
     import java.util.Optional;
     import java.util.stream.Collectors;
@@ -40,7 +43,7 @@
         }
 
         @Transactional
-        public void handleMessage(ChatMessageDto chatMessageDto) {
+        public ChatMessageDto handleMessage(ChatMessageDto chatMessageDto) {
             // Sender와 Receiver 사용자 찾기
             User senderUser = userRepository.findByHpid(chatMessageDto.getSenderUserId())
                     .orElseThrow(() -> new IllegalArgumentException("Invalid sender user ID"));
@@ -54,17 +57,22 @@
             ChattingRoom chattingRoom = findOrCreateRoom(chatMessageDto);
             log.info("chattingRoom={}", chattingRoom.getId());
 
+            chatMessageDto.setCreatedAt(Timestamp.from(ZonedDateTime.now(ZoneId.of("Asia/Seoul")).toInstant()));
+            chatMessageDto.setChattingRoomId(chattingRoom.getId());
+            chatMessageDto.setOrganization(senderUser.getOrganization_name());
+
             // Chat 엔티티 생성 및 설정
             Chat chat = new Chat();
             chat.setSenderUser(senderUser);
             chat.setReceiverUser(receiverUser);
             chat.setContent(chatMessageDto.getContent());
             chat.setChattingRoom(chattingRoom);
-            chat.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+            chat.setCreatedAt(chatMessageDto.getCreatedAt());
 
             // 메시지 저장
             personalChatRepository.save(chat);
             log.info("Message from {} to {} in room {} saved.", chatMessageDto.getSenderUserId(), chatMessageDto.getReceiverUserId(), chatMessageDto.getChattingRoomId());
+            return chatMessageDto;
         }
 
         //채팅방 찾기
