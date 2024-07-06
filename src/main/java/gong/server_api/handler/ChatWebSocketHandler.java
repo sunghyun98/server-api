@@ -133,9 +133,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
             double latitude = pythonRequest.getLatitude();
             double longitude = pythonRequest.getLongitude();
-            log.info("latitude={}", latitude);
+            log.info("latitude={}", getHpidFromSession(session));
 
-            List<HospitalCombinedDto> hospitalAddress = hospitalService.getHospitalAddress(latitude, longitude, pythonResponse);
+            List<HospitalCombinedDto> hospitalAddress = hospitalService.getHospitalAddress(latitude, longitude, pythonResponse, getHpidFromSession(session));
             String safetyMessage = pythonResponse.getSafetyMessage();
             log.info("safetyMessage={}", safetyMessage);
 
@@ -187,6 +187,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             String hpid = getHpidFromSession(session);
             sessions.remove(hpid);
             hospitalConnectionStatusService.updateConnectionStatus(hpid, false);
+
+            hospitalService.deleteHospitalMatchesByUserHpid(hpid);
             log.info("User disconnected: " + hpid);
         } catch (Exception e) {
             log.error("Error during connection closure", e);

@@ -24,7 +24,7 @@ repositories {
 dependencies {
 	//타임리프
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
-	implementation group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: '3.3.0'
+	implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect'
 
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	compileOnly 'org.projectlombok:lombok'
@@ -32,6 +32,53 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+	//json 변환
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+	implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
+
+	//jaxb
+	implementation 'javax.xml.bind:jaxb-api'
+	runtimeOnly 'com.sun.xml.bind:jaxb-impl'
+	implementation 'org.glassfish.jaxb:jaxb-runtime'
+	implementation 'javax.activation:activation'
+
+	// 스프링 시큐리티를 사용하기 위한 스타터 추가
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	// 타임리프에서 스프링 시큐리티를 사용하기 위한 의존성 추가
+	//implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+	// 스프링 시큐리티를 테스트하기 위한 의존성 추가
+	//testImplementation 'org.springframework.security:spring-security-test'
+
+	// JPA
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	//mysql 연동
+	implementation 'mysql:mysql-connector-java:8.0.32'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	//JWT 토큰 의존성 0.12.3
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+
+	implementation 'javax.validation:validation-api:2.0.1.Final'
+
+	// https://mvnrepository.com/artifact/org.json/json
+	implementation group: 'org.json', name: 'json', version: '20231013'
+	//웹소켓 통신 gradle 추가
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+	//검증추가
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	//ai 테스트
+	implementation 'org.python:jython-slim:2.7.3rc1' //jython
+
+
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2'
+
 }
 
 tasks.named('test') {
