@@ -1,15 +1,17 @@
 
 package gong.server_api.handler;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gong.server_api.domain.dto.BaseMessageDto;
 import gong.server_api.domain.dto.ChatBotMessageDto;
+import gong.server_api.jwt.JWTUtil;
 import gong.server_api.service.request.PythonRequest;
 import gong.server_api.service.response.PythonResponse;
 import gong.server_api.service.PythonService;
 import gong.server_api.domain.dto.ChatMessageDto;
 
+import java.net.URI;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 
 import gong.server_api.domain.dto.HospitalCombinedDto;
 import gong.server_api.domain.entity.user.User;
@@ -41,59 +43,74 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final HospitalConnectionStatusService hospitalConnectionStatusService;
     private final PythonService pythonService;
     private final UserRepository userRepository;
+    private final JWTUtil jwtUtil;
 
-    public ChatWebSocketHandler(ChatService chatService, HospitalService hospitalService, ObjectMapper objectMapper, HospitalConnectionStatusService hospitalConnectionStatusService, PythonService pythonService, UserRepository userRepository) {
+    public ChatWebSocketHandler(ChatService chatService, HospitalService hospitalService, ObjectMapper objectMapper, HospitalConnectionStatusService hospitalConnectionStatusService, PythonService pythonService, UserRepository userRepository, JWTUtil jwtUtil) {
         this.chatService = chatService;
         this.hospitalService = hospitalService;
         this.objectMapper = objectMapper;
         this.hospitalConnectionStatusService = hospitalConnectionStatusService;
         this.pythonService = pythonService;
         this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         try {
-            String hpid = getHpidFromSession(session);
-            sessions.put(hpid, session);
+            // Get email from session attributes
+            String email = (String) session.getAttributes().get("email");
+            log.info("Email: {}", email);
+
+            if (email == null || email.isEmpty()) {
+                log.warn("Email이 존재하지 않습니다. 연결을 종료합니다.");
+                session.close(CloseStatus.BAD_DATA); // 연결을 종료합니다.
+                return;
+            }
+
+            User user = userRepository.findByEmail(email);
+            if (user == null) {
+                log.warn("사용자를 찾을 수 없습니다. 연결을 종료합니다.");
+                session.close(CloseStatus.BAD_DATA); // 연결을 종료합니다.
+                return;
+            }
+
+            String hpid = user.getHpid();
+            String role = String.valueOf(user.getRole());
 
             List<String> connectedHospitals = hospitalConnectionStatusService.getConnectedHospitals();
-            String connectedHospitalsJson = new ObjectMapper().writeValueAsString(connectedHospitals);
 
-            userRepository.findByHpid(hpid).ifPresent(user -> {
-                String role = String.valueOf(user.getRole());
-                if ("FIREFIGHTER".equalsIgnoreCase(role)) {
-                    try {
-                        session.sendMessage(new TextMessage("안녕하세요!\n증상을 입력해 주시면 가장 가까운 응급실을 찾아드리겠습니다."));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                } else {
-                    List<String> firefighterList = new ArrayList<>();
-                    for (String connectedHospital : connectedHospitals) {
-                        userRepository.findByHpid(connectedHospital).ifPresent(hospitalUser -> {
-                            if ("FIREFIGHTER".equalsIgnoreCase(String.valueOf(hospitalUser.getRole()))) {
-                                firefighterList.add(hospitalUser.getOrganization_name());
-                            }
-                        });
-                    }
-                    try {
-                        String firefighterListJson = new ObjectMapper().writeValueAsString(firefighterList);
-                        session.sendMessage(new TextMessage("현재 연결된 소방관 목록: " + firefighterListJson));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+            if ("FIREFIGHTER".equalsIgnoreCase(role)) {
+                try {
+                    session.sendMessage(new TextMessage("안녕하세요!\n증상을 입력해 주시면 가장 가까운 응급실을 찾아드리겠습니다."));
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to send message to firefighter", e);
+                }
+            } else {
+                List<String> firefighterList = new ArrayList<>();
+                for (String connectedHospital : connectedHospitals) {
+                    Optional<User> hospitalUser = userRepository.findByHpid(connectedHospital);
+                    if (hospitalUser != null && "FIREFIGHTER".equalsIgnoreCase(hospitalUser.getRole())) {
+                        firefighterList.add(hospitalUser.getOrganization_name());
                     }
                 }
-                log.info("User connected: hpid={}, role={}", hpid, role);
-            });
+                try {
+                    String firefighterListJson = new ObjectMapper().writeValueAsString(firefighterList);
+                    session.sendMessage(new TextMessage("현재 연결된 소방관 목록: " + firefighterListJson));
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to send firefighter list", e);
+                }
+            }
+
+            log.info("User connected: email={}, hpid={}, role={}", email, hpid, role);
             hospitalConnectionStatusService.updateConnectionStatus(hpid, true);
             log.info("User connected: " + hpid);
 
         } catch (Exception e) {
             log.error("Error during connection establishment", e);
+            throw new RuntimeException("Error during connection establishment", e);
         }
     }
-
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
         try {
@@ -227,9 +244,26 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     private String getHpidFromSession(WebSocketSession session) {
-        return session.getUri().getQuery().split("=")[1];
+        URI uri = session.getUri();
+        if (uri == null || uri.getQuery() == null) {
+            return null;
+        }
+        String[] queryParams = uri.getQuery().split("&");
+        for (String param : queryParams) {
+            String[] keyValue = param.split("=");
+            if (keyValue.length == 2 && "hpid".equals(keyValue[0])) {
+                return keyValue[1];
+            }
+        }
+        return null;
     }
-
+    private String getTokenFromHeaders(WebSocketSession session) {
+        List<String> authHeaders = session.getHandshakeHeaders().get("Authorization");
+        if (authHeaders != null && !authHeaders.isEmpty()) {
+            return authHeaders.get(0).replace("Bearer ", "");
+        }
+        return null;
+    }
     private void sendErrorMessage(WebSocketSession session, String errorMessage) {
         try {
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(Map.of("error", errorMessage))));
