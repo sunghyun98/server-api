@@ -89,9 +89,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             } else {
                 List<String> firefighterList = new ArrayList<>();
                 for (String connectedHospital : connectedHospitals) {
-                    Optional<User> hospitalUser = userRepository.findByHpid(connectedHospital);
-                    if (hospitalUser != null && "FIREFIGHTER".equalsIgnoreCase(hospitalUser.getRole())) {
-                        firefighterList.add(hospitalUser.getOrganization_name());
+                    Optional<User> hospitalUserOptional = userRepository.findByHpid(connectedHospital);
+                    if (hospitalUserOptional.isPresent()) {
+                        User hospitalUser = hospitalUserOptional.get();
+                        if ("FIREFIGHTER".equalsIgnoreCase(String.valueOf(hospitalUser.getRole()))) {
+                            firefighterList.add(hospitalUser.getOrganization_name());
+                        }
                     }
                 }
                 try {
@@ -151,9 +154,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
             double latitude = pythonRequest.getLatitude();
             double longitude = pythonRequest.getLongitude();
-            log.info("latitude={}", getHpidFromSession(session));
+            String email = (String) session.getAttributes().get("email");
 
-            List<HospitalCombinedDto> hospitalAddress = hospitalService.getHospitalAddress(latitude, longitude, pythonResponse, getHpidFromSession(session));
+            List<HospitalCombinedDto> hospitalAddress = hospitalService.getHospitalAddress(latitude, longitude, pythonResponse, email);
             String safetyMessage = pythonResponse.getSafetyMessage();
             log.info("safetyMessage={}", safetyMessage);
 
