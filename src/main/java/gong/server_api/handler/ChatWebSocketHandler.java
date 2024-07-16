@@ -1,6 +1,5 @@
 
 package gong.server_api.handler;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gong.server_api.domain.dto.BaseMessageDto;
 import gong.server_api.domain.dto.ChatBotMessageDto;
@@ -60,27 +59,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         try {
             // Get email from session attributes
             String email = (String) session.getAttributes().get("email");
-            log.info("Email: {}", email);
-
-            if (email == null || email.isEmpty()) {
-                log.warn("Email이 존재하지 않습니다. 연결을 종료합니다.");
-                session.close(CloseStatus.BAD_DATA); // 연결을 종료합니다.
-                return;
-            }
-
-            User user = userRepository.findByEmail(email);
-            if (user == null) {
-                log.warn("사용자를 찾을 수 없습니다. 연결을 종료합니다.");
-                session.close(CloseStatus.BAD_DATA); // 연결을 종료합니다.
-                return;
-            }
-
-            String hpid = user.getHpid();
-            String role = String.valueOf(user.getRole());
+            String hpid = (String) session.getAttributes().get("hpid");
+            String role = (String) session.getAttributes().get("role");
+            log.info("Email: {}, hpid: {}, role: {}", email,hpid,role);
 
             List<String> connectedHospitals = hospitalConnectionStatusService.getConnectedHospitals();
 
             if ("FIREFIGHTER".equalsIgnoreCase(role)) {
+                hospitalConnectionStatusService.updateConnectionStatus(email, true, role);
                 try {
                     session.sendMessage(new TextMessage("안녕하세요!\n증상을 입력해 주시면 가장 가까운 응급실을 찾아드리겠습니다."));
                 } catch (IOException e) {
@@ -106,7 +92,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             }
 
             log.info("User connected: email={}, hpid={}, role={}", email, hpid, role);
-            hospitalConnectionStatusService.updateConnectionStatus(hpid, true);
+
+
             log.info("User connected: " + hpid);
 
         } catch (Exception e) {
@@ -166,13 +153,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             response.put("hospitalCount", hospitalAddress.size());
             log.info("hospitalAddress={}", hospitalAddress);
 
-            WebSocketSession senderSession = sessions.get(getHpidFromSession(session));
-            if (senderSession != null && senderSession.isOpen()) {
-                senderSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
-                log.info("Hospital list sent to {}", getHpidFromSession(session));
-            } else {
-                log.warn("Sender session {} is not connected", getHpidFromSession(session));
-            }
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
+
         } catch (IOException e) {
             log.error("Error processing AI message", e);
             sendErrorMessage(session, "Error processing AI message");
@@ -184,6 +166,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private void handleChatMessage(WebSocketSession session, ChatMessageDto chatMessageDto) {
         try {
+
+            String senderUserId = (String) session.getAttributes().get("email");
+            chatMessageDto.setSenderUserId(senderUserId);
             String receiverUserId = chatMessageDto.getReceiverUserId();
             WebSocketSession receiverSession = sessions.get(receiverUserId);
             if (receiverSession != null && receiverSession.isOpen()) {
@@ -205,9 +190,10 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         try {
-            String hpid = getHpidFromSession(session);
+            String hpid = (String) session.getAttributes().get("hpid");
+            String role = (String) session.getAttributes().get("role");
             sessions.remove(hpid);
-            hospitalConnectionStatusService.updateConnectionStatus(hpid, false);
+            hospitalConnectionStatusService.updateConnectionStatus(hpid, false, role);
 
             hospitalService.deleteHospitalMatchesByUserHpid(hpid);
             log.info("User disconnected: " + hpid);
@@ -257,13 +243,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             if (keyValue.length == 2 && "hpid".equals(keyValue[0])) {
                 return keyValue[1];
             }
-        }
-        return null;
-    }
-    private String getTokenFromHeaders(WebSocketSession session) {
-        List<String> authHeaders = session.getHandshakeHeaders().get("Authorization");
-        if (authHeaders != null && !authHeaders.isEmpty()) {
-            return authHeaders.get(0).replace("Bearer ", "");
         }
         return null;
     }
