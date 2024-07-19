@@ -25,6 +25,7 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
 import java.util.*;
@@ -65,6 +66,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
             List<String> connectedHospitals = hospitalConnectionStatusService.getConnectedHospitals();
 
+            // Store the session using email as the key
+            sessions.put(email, session);
             if ("FIREFIGHTER".equalsIgnoreCase(role)) {
                 hospitalConnectionStatusService.updateConnectionStatus(email, true, role);
                 try {
@@ -72,7 +75,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 } catch (IOException e) {
                     throw new RuntimeException("Failed to send message to firefighter", e);
                 }
-            } else {
+            }
+            /* else {
                 List<String> firefighterList = new ArrayList<>();
                 for (String connectedHospital : connectedHospitals) {
                     Optional<User> hospitalUserOptional = userRepository.findByHpid(connectedHospital);
@@ -91,9 +95,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 }
             }
 
+             */
             log.info("User connected: email={}, hpid={}, role={}", email, hpid, role);
-
-
             log.info("User connected: " + hpid);
 
         } catch (Exception e) {
@@ -166,17 +169,37 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private void handleChatMessage(WebSocketSession session, ChatMessageDto chatMessageDto) {
         try {
+            // 보내는 사람
+            String senderEmail = (String) session.getAttributes().get("email");
+            chatMessageDto.setSenderUserId(senderEmail);
 
-            String senderUserId = (String) session.getAttributes().get("email");
-            chatMessageDto.setSenderUserId(senderUserId);
-            String receiverUserId = chatMessageDto.getReceiverUserId();
-            WebSocketSession receiverSession = sessions.get(receiverUserId);
+            // 받는 사람
+            String receiverIdentifier = chatMessageDto.getReceiverUserId();
+            WebSocketSession receiverSession;
+
+            // Check if the chat room already exists (message contains chat room ID)
+            if (chatMessageDto.getChattingRoomId() != null) {
+                receiverSession = sessions.get(receiverIdentifier); // Using email as key
+            } else {
+                // If chat room does not exist, find user by HPID
+                Optional<User> receiverUserOptional = userRepository.findByHpid(receiverIdentifier);
+                if (receiverUserOptional.isPresent()) {
+                    User receiverUser = receiverUserOptional.get();
+                    receiverSession = sessions.get(receiverUser.getEmail());
+                } else {
+                    log.warn("Receiver with HPID {} not found", receiverIdentifier);
+                    sendErrorMessage(session, "Receiver not found");
+                    return;
+                }
+            }
+            // If receiver session is found and open, handle the message
             if (receiverSession != null && receiverSession.isOpen()) {
                 chatService.handleMessage(chatMessageDto);
                 receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(chatMessageDto)));
-                log.info("Message sent from {} to {}", chatMessageDto.getSenderUserId(), receiverUserId);
+                log.info("Message sent from {} to {}", chatMessageDto.getSenderUserId(), receiverIdentifier);
             } else {
-                log.warn("Receiver {} is not connected", receiverUserId);
+                log.warn("Receiver {} is not connected", receiverIdentifier);
+                sendErrorMessage(session, "Receiver not connected");
             }
         } catch (IOException e) {
             log.error("Error processing chat message", e);
@@ -190,13 +213,13 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         try {
-            String hpid = (String) session.getAttributes().get("hpid");
+            String email = (String) session.getAttributes().get("email");
             String role = (String) session.getAttributes().get("role");
-            sessions.remove(hpid);
-            hospitalConnectionStatusService.updateConnectionStatus(hpid, false, role);
+            sessions.remove(email);
+            hospitalConnectionStatusService.updateConnectionStatus(email, false, role);
 
-            hospitalService.deleteHospitalMatchesByUserHpid(hpid);
-            log.info("User disconnected: " + hpid);
+            hospitalService.deleteHospitalMatchesByUserHpid(email);
+            log.info("User disconnected: " + email);
         } catch (Exception e) {
             log.error("Error during connection closure", e);
         }
@@ -232,20 +255,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private String getHpidFromSession(WebSocketSession session) {
-        URI uri = session.getUri();
-        if (uri == null || uri.getQuery() == null) {
-            return null;
-        }
-        String[] queryParams = uri.getQuery().split("&");
-        for (String param : queryParams) {
-            String[] keyValue = param.split("=");
-            if (keyValue.length == 2 && "hpid".equals(keyValue[0])) {
-                return keyValue[1];
-            }
-        }
-        return null;
-    }
     private void sendErrorMessage(WebSocketSession session, String errorMessage) {
         try {
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(Map.of("error", errorMessage))));
