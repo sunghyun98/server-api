@@ -1,27 +1,28 @@
 package gong.server_api.controller;
+import gong.server_api.service.HospitalService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-
-
+@Slf4j
 @Controller
 @RequestMapping("/hospital")
 public class HospitalController {
 
-
     @GetMapping("/list")
-    public String hospitalList(String text, Model model) {
-        // 병원 목록 가져오기
+    public String hospitalGo(){
+        return "/page/hospital/list";
+    }
+    private final HospitalService hospitalService;
 
-        // 페이지 이름 반환
-        return "page/hospital/list";
+
+    public HospitalController(HospitalService hospitalService) {
+        log.info("HospitalController");
+        this.hospitalService = hospitalService;
     }
 
-    @GetMapping("/nav")
-    public String hospitalNav() {
-        // 페이지 이름 반환
-        return "page/hospital/nav";
-    }
+
 }
+
