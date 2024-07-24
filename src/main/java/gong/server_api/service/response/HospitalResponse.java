@@ -2,7 +2,7 @@ package gong.server_api.service.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-import gong.server_api.domain.dto.searchList.EmerHospitalDto;
+import gong.server_api.domain.dto.EmerHospitalDto;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
