@@ -1,3 +1,4 @@
+/*
 package gong.server_api.restcontroller;
 
 import gong.server_api.domain.dto.ChatMessageDto;
@@ -67,3 +68,5 @@ public class ChatRestController {
         }
     }
 }
+
+ */
