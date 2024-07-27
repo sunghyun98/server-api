@@ -1,11 +1,13 @@
     package gong.server_api.service;
 
     import gong.server_api.domain.dto.ChatMessageDto;
+    import gong.server_api.domain.dto.ChattingRoomDto;
     import gong.server_api.domain.dto.HospitalChatMessageDto;
     import gong.server_api.domain.entity.user.Chat;
     import gong.server_api.domain.entity.user.ChattingRoom;
     import gong.server_api.domain.entity.user.HospitalAi;
     import gong.server_api.domain.entity.user.User;
+    import gong.server_api.handler.ChatWebSocketHandler;
     import gong.server_api.repository.ChattingRoomRepository;
     import gong.server_api.repository.HospitalAiRepo;
     import gong.server_api.repository.PersonalChatRepository;
@@ -31,8 +33,9 @@
         private final PersonalChatRepository personalChatRepository;
         private final UserRepository userRepository;
         private final ChattingRoomRepository chattingRoomRepository;
-
         private final HospitalAiRepo hospitalAiRepo;
+
+
 
         @Autowired
         public ChatService(PersonalChatRepository personalChatRepository, UserRepository userRepository, ChattingRoomRepository chattingRoomRepository, HospitalAiRepo hospitalAiRepo) {
@@ -40,6 +43,7 @@
             this.userRepository = userRepository;
             this.chattingRoomRepository = chattingRoomRepository;
             this.hospitalAiRepo = hospitalAiRepo;
+
         }
 
         @Transactional
@@ -88,14 +92,14 @@
         }
 
         //채팅방 생성
-        private ChattingRoom createRoom(ChatMessageDto chatMessageDto) {
+        public ChattingRoom createRoom(ChatMessageDto chatMessageDto) {
             // 보내는 사용자 정보 가져오기
-            User sender = userRepository.findByHpid(chatMessageDto.getSenderUserId())
-                    .orElseThrow(() -> new IllegalArgumentException("Sender not found for HPID: " + chatMessageDto.getSenderUserId()));
+            User sender = userRepository.findByEmail(chatMessageDto.getSenderUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("Sender not found for USER: " + chatMessageDto.getSenderUserId()));
 
             // 받는 사용자 정보 가져오기
-            User receiver = userRepository.findByHpid(chatMessageDto.getReceiverUserId())
-                    .orElseThrow(() -> new IllegalArgumentException("Receiver not found for HPID: " + chatMessageDto.getReceiverUserId()));
+            User receiver = userRepository.findByEmail(chatMessageDto.getReceiverUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("Receiver not found for USER: " + chatMessageDto.getReceiverUserId()));
 
             // 채팅방 생성
             ChattingRoom room = new ChattingRoom();
@@ -106,8 +110,33 @@
             // 채팅방 저장
             return chattingRoomRepository.save(room);
         }
+        public ChattingRoomDto createHospitalRoom(ChattingRoomDto chattingRoomDto) {
+            // 받는 사용자 정보 가져오기
+            User receiver = userRepository.findByHpid(chattingRoomDto.getReceiverId())
+                    .orElseThrow(() -> new IllegalArgumentException("Receiver not found for USER: " + chattingRoomDto.getReceiverId()));
 
+            // 보낸 사용자 정보 가져오기
+            User sender = userRepository.findByEmail(chattingRoomDto.getSenderId())
+                    .orElseThrow(() -> new IllegalArgumentException("Sender not found for USER: " + chattingRoomDto.getSenderId()));
 
+            chattingRoomDto.setRoomName(receiver.getOrganization_name());
+
+            // 채팅방 생성
+            ChattingRoom room = new ChattingRoom();
+            room.setCreatedAt(LocalDateTime.now());
+            room.setRoomName(receiver.getOrganization_name());
+            room.setSenderId(sender);
+            room.setReceiverId(receiver);
+
+            // 채팅방 저장
+            ChattingRoom savedRoom = chattingRoomRepository.save(room);
+
+            // 생성된 채팅방 ID를 DTO에 설정
+            chattingRoomDto.setId(savedRoom.getId());
+
+            // DTO 반환
+            return chattingRoomDto;
+        }
         public List<ChatMessageDto> findReceivedChatList(String receiverHpid) {
             log.info("Finding received chats for receiverHpid = {}", receiverHpid);
 
