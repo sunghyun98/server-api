@@ -1,6 +1,7 @@
 package gong.server_api.restcontroller;
 
 import gong.server_api.CustomUserDetails;
+import gong.server_api.domain.dto.ChatMessageDto;
 import gong.server_api.domain.dto.ChattingRoomDto;
 import gong.server_api.domain.dto.LocationDto;
 import gong.server_api.domain.entity.user.Role;
@@ -43,4 +44,5 @@ public class ChatController {
 
         return ResponseEntity.ok(response);
     }
+
 }

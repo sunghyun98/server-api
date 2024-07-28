@@ -21,7 +21,9 @@
     import java.time.LocalDateTime;
     import java.time.ZoneId;
     import java.time.ZonedDateTime;
+    import java.util.HashMap;
     import java.util.List;
+    import java.util.Map;
     import java.util.Optional;
     import java.util.stream.Collectors;
 
@@ -35,15 +37,16 @@
         private final ChattingRoomRepository chattingRoomRepository;
         private final HospitalAiRepo hospitalAiRepo;
 
+        private final ChatWebSocketHandler chatWebSocketHandler;
 
 
         @Autowired
-        public ChatService(PersonalChatRepository personalChatRepository, UserRepository userRepository, ChattingRoomRepository chattingRoomRepository, HospitalAiRepo hospitalAiRepo) {
+        public ChatService(PersonalChatRepository personalChatRepository, UserRepository userRepository, ChattingRoomRepository chattingRoomRepository, HospitalAiRepo hospitalAiRepo, ChatWebSocketHandler chatWebSocketHandler) {
             this.personalChatRepository = personalChatRepository;
             this.userRepository = userRepository;
             this.chattingRoomRepository = chattingRoomRepository;
             this.hospitalAiRepo = hospitalAiRepo;
-
+            this.chatWebSocketHandler = chatWebSocketHandler;
         }
 
         @Transactional
@@ -111,6 +114,8 @@
             return chattingRoomRepository.save(room);
         }
         public ChattingRoomDto createHospitalRoom(ChattingRoomDto chattingRoomDto) {
+            Map<String, Object> message = new HashMap<>();
+
             // 받는 사용자 정보 가져오기
             User receiver = userRepository.findByHpid(chattingRoomDto.getReceiverId())
                     .orElseThrow(() -> new IllegalArgumentException("Receiver not found for USER: " + chattingRoomDto.getReceiverId()));
@@ -134,9 +139,20 @@
             // 생성된 채팅방 ID를 DTO에 설정
             chattingRoomDto.setId(savedRoom.getId());
 
+            message.put("roomId", chattingRoomDto.getId());
+            message.put("roomName", chattingRoomDto.getRoomName());
+            message.put("senderName", sender.getOrganization_name());
+            message.put("content", chattingRoomDto.getContent());
+            message.put("CreateRoom",chattingRoomDto.getCreatedAt());
+
+            chatWebSocketHandler.sendMessage(sender.getEmail(), receiver.getEmail(), message);
+
             // DTO 반환
             return chattingRoomDto;
         }
+
+
+
         public List<ChatMessageDto> findReceivedChatList(String receiverHpid) {
             log.info("Finding received chats for receiverHpid = {}", receiverHpid);
 
