@@ -25,6 +25,9 @@ public class ChattingRoom {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "room_name")
+    private String roomName;
+
     @ManyToOne
     @JoinColumn(name = "sender_id", referencedColumnName = "hpid", nullable = false)
     private User senderId;
