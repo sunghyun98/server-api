@@ -1,5 +1,6 @@
 package gong.server_api;
 
+import gong.server_api.domain.entity.user.Role;
 import gong.server_api.domain.entity.user.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,6 +34,10 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public String getUsername() {
         return userEntity.getEmail(); // userEmail로 변경
+    }
+
+    public Role getRole(){
+        return userEntity.getRole();
     }
 
     @Override
