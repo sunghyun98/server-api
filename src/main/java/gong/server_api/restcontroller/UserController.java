@@ -48,7 +48,7 @@ public class UserController {
 
     @GetMapping("/user")
     public UserDto findUserInfo() {
-        return userService.findUserImfo();
+        return userService.findUserInfo();
     }
 
     @GetMapping("/connection")
